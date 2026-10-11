@@ -1,0 +1,232 @@
+ATS V3 - WINDOWS STEP-BY-STEP RUN GUIDE
+=====================================
+
+Use PowerShell. Copy only commands, not the PS ...> prompt.
+Commands below use the virtual environment's Python directly, so you do
+not need Activate.ps1 or a separate activation step in either terminal.
+
+TERMINAL PLAN
+-------------
+Terminal 1: Runs the server. Leave it open while using the dashboard.
+Browser: Controls Sync, Start, Stop, models and paper evaluation.
+Terminal 2: Optional API commands, sample replay and backups.
+You do not need Terminal 2 if you use the dashboard buttons.
+
+1. OPEN YOUR NEW PROJECT FOLDER (TERMINAL 1)
+-------------------------------------------
+Extract the GitHub ZIP into a new folder. Open the extracted folder that
+contains run.py, requirements.txt and START_HERE_WINDOWS.txt.
+Right-click in that folder and choose Open in Terminal / PowerShell.
+
+If PowerShell opened elsewhere, run the following, replacing the example
+path with YOUR extracted project folder:
+
+Set-Location "D:\4th yr Sem - 7\Projects\GitHub_for_Chatpgt-main"
+Test-Path .\run.py
+
+The last command should print True. If False, correct the folder first.
+Keep your old installation and its data separate from this new folder.
+
+2. FIRST-TIME SETUP ONLY (TERMINAL 1)
+------------------------------------
+Skip this section if this new installation already runs successfully.
+
+py -3.12 --version
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+
+Wait for each command to finish before entering the next.
+If Python 3.12 is missing, install it and reopen PowerShell first.
+Do not overwrite an existing .env containing your local configuration.
+
+3. START THE SERVER (TERMINAL 1, EVERY TIME)
+-------------------------------------------
+.\.venv\Scripts\python.exe run.py
+
+Wait for the message showing http://127.0.0.1:8000 and startup complete.
+This terminal stays busy: that is normal. Leave it open.
+Do not enter API or install commands into this busy terminal.
+Do not run a second copy of run.py.
+
+4. OPEN THE DASHBOARD (BROWSER)
+-------------------------------
+Open Chrome, Edge or another browser and visit:
+
+http://127.0.0.1:8000
+
+Use the browser on the same computer as Terminal 1.
+
+5. GET DATA, TRAIN AND FORECAST (BROWSER)
+----------------------------------------
+If the background worker is running, click Stop first.
+If the paper runner is running, stop it in Paper account first.
+Click Sync once and wait for the job to report SUCCEEDED.
+
+Sync downloads completed daily history, settles eligible earlier forecasts,
+trains the daily models and saves the next daily forecast.
+Do not click Train or Forecast repeatedly while Sync is running.
+Check Overview, Forecast history, Performance, Models and System health.
+
+If the job reports FAILED, read the error and System health. Logs are in
+the logs folder. An unavailable feed must be fixed before retrying.
+Yahoo daily history does not require an Upstox token.
+WAIT means the model did not pass the decision gate; it is a valid result.
+Performance may initially be empty because forecasts have not settled yet.
+Repeated daily forecasts for the same reference/target reuse one record.
+
+6. OPTIONAL AUTOMATIC DAILY OPERATION (BROWSER)
+-----------------------------------------------
+After Sync finishes, click Start to run the daily background worker.
+Keep Terminal 1 open and the computer awake with an Internet connection.
+The worker refreshes data and forecasts according to its schedule.
+Click Stop before starting any manual Sync, training or forecast job.
+Start is the daily worker button; it does not start paper trading.
+
+7. OPTIONAL API COMMANDS (A NEW TERMINAL 2)
+------------------------------------------
+Leave Terminal 1 running. Open a second PowerShell window.
+These HTTP commands do not require virtual-environment activation.
+Stop the background worker and paper runner in the browser first.
+
+Normally this single command replaces separate ingest/train/forecast calls:
+
+Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8000/api/sync"
+
+Check its progress with:
+
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/jobs/current" | Format-List
+
+Repeat the progress command until SUCCEEDED or FAILED.
+The POST returns a queued job, not the finished forecast, in v3.
+Read the finished forecast in the browser.
+
+If you specifically want individual steps, run these ONE AT A TIME:
+
+Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8000/api/ingest"
+
+Check /api/jobs/current and wait for SUCCEEDED before running:
+
+Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8000/api/train"
+
+Check /api/jobs/current and wait for SUCCEEDED before running:
+
+Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8000/api/forecast"
+
+Check /api/jobs/current again. Stop if any step fails.
+If you configured ATS_API_TOKEN, these requests also need your local
+Bearer token header. Otherwise the default installation needs no header.
+The dashboard's Settings view supports entering that local API token.
+
+8. OPTIONAL SAMPLE PAPER REPLAY (TERMINAL 2)
+-------------------------------------------
+Go to the SAME project folder as Terminal 1. Replace the path if needed:
+
+Set-Location "D:\4th yr Sem - 7\Projects\GitHub_for_Chatpgt-main"
+.\.venv\Scripts\python.exe scripts/replay_paper.py --quotes data/paper_quotes_example.csv --orders data/paper_orders_example.csv
+
+This is a small CSV-based simulator example. It prints fills, position and
+realized P/L, then exits. It does not start continuous paper evaluation or
+populate the dashboard's persistent paper account.
+
+9. OPTIONAL INTRADAY PAPER EVALUATION
+------------------------------------
+This section needs a valid Upstox token and actual instrument history.
+Skip it if you only want daily research and forecasting.
+
+A. Browser: stop the daily worker, paper runner and any active manual job.
+B. Terminal 1: press Ctrl+C to stop the server. Wait for shutdown.
+C. Terminal 1, now free: install the optional neural dependency:
+
+.\.venv\Scripts\python.exe -m pip install -r requirements-ml.txt
+notepad .env
+
+D. In Notepad, configure and save:
+   ATS_UPSTOX_ACCESS_TOKEN: your current token, kept locally.
+   ATS_UPSTOX_EXECUTION_KEY: exact tradeable equity/futures instrument key.
+   ATS_LIVE_PAPER_ENABLE=true
+   ATS_PAPER_LOT_SIZE: verified lot size, required for derivatives.
+   Exposure/order/daily-loss limits suitable for your instrument.
+   ATS_PAPER_FEE_BPS and ATS_PAPER_FIXED_FEE: estimated fees/taxes.
+   Do not use NSE_INDEX|Nifty 50 as the execution instrument.
+   Do not share .env or paste your token into GitHub.
+E. Terminal 1: start the server again:
+
+.\.venv\Scripts\python.exe run.py
+
+F. Browser, Models: prepare one-minute instrument history. Wait for success.
+G. Browser, Models: train the intraday challenger outside market hours.
+   Wait for completion and check whether a champion was promoted.
+   A rejected candidate cannot run paper execution; investigate the model
+   results and data instead of trying to bypass the acceptance gates.
+H. During a supported market session, open Paper account and start its runner.
+   Inspect heartbeat, positions, orders, fills, fees and P/L.
+   Keep the daily worker stopped while this runner is active.
+   Do not also start scripts/run_live_paper.py in another terminal.
+
+All orders here are simulated. The application has no real broker order
+routing. Stop retains positions. Kill blocks all simulated fills, including
+exits. If you want to close a simulated position, use Flatten with fresh
+market data while execution is allowed, then verify the position is zero.
+Do not assume that Stop or closing the window closes a position.
+
+10. BACK UP YOUR WORK (BROWSER OR TERMINAL 2)
+--------------------------------------------
+Browser: Settings -> Create database backup.
+Or Terminal 2, in the project folder:
+
+.\.venv\Scripts\python.exe scripts/backup.py
+
+The script prints a backup path under data/backups.
+Keep your models folder and .env separately; the database backup does not
+include them. Protect any backup that contains credentials.
+
+11. STOP THE APPLICATION PROPERLY
+--------------------------------
+Browser: stop the daily worker and/or paper runner.
+Wait for any job to finish, or explicitly stop it using the dashboard.
+Check paper positions before shutdown if you were evaluating paper trades.
+Terminal 1: press Ctrl+C and wait for shutdown, then close the terminal.
+Terminal 2 and the browser can now be closed.
+Saved records remain on disk.
+
+12. NEXT DAY / NEXT RESTART (SHORT VERSION)
+------------------------------------------
+Terminal 1: open PowerShell in the project folder, then:
+
+.\.venv\Scripts\python.exe run.py
+
+Browser: open http://127.0.0.1:8000
+Browser: click Sync, wait for SUCCEEDED, then inspect results.
+Browser: optionally click Start for the daily worker.
+No reinstall, new virtual environment or Terminal 2 is needed each day.
+
+13. OFFLINE DEMO / COMMON PROBLEMS
+---------------------------------
+No Internet or just exploring the interface?
+Stop the normal server with Ctrl+C, then in Terminal 1 run:
+
+.\.venv\Scripts\python.exe run.py --demo
+
+This uses clearly labelled synthetic data and separate saved state.
+External Sync and live/paper connections are disabled in demo mode.
+Stop it, then restart without --demo to return to your normal data.
+
+Connection refused / page cannot load:
+  Check Terminal 1 is running, with no startup error.
+Address already in use:
+  Stop your older server in its terminal; run only one server on port 8000.
+409 / another job running:
+  Stop the worker/paper runner and wait for the current job to finish.
+Python executable missing:
+  Confirm the folder and complete first-time setup in Section 2.
+Token expired / live feed inactive:
+  Update .env locally with a current token, then restart the server.
+No settled forecasts:
+  Wait until the target session closes plus publication lag, then Sync.
+Off-market:
+  Daily research can still work using the latest completed session;
+  continuous paper execution needs supported market hours and fresh data.
+
+The supplied exchange calendar supports 2026 only. Verify its holidays
+against exchange notices and update it before using later years.
