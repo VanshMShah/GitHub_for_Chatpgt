@@ -1,0 +1,44 @@
+> Historical v2 documentation. For v3 behavior, installation and current limitations see README.md and VALIDATION.md.
+
+ATS v2.2 quick start
+=====================
+
+1) Create environment
+   py -3.13 -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   python -m pip install -r requirements.txt
+
+2) Optional custom model dependencies
+   python -m pip install -r requirements-ml.txt
+
+3) Configure live NIFTY feed (PowerShell)
+   $env:ATS_UPSTOX_ACCESS_TOKEN="YOUR_ACCESS_TOKEN"
+   $env:ATS_UPSTOX_NIFTY_KEY="NSE_INDEX|Nifty 50"
+
+4) Start
+   python run.py
+
+5) Open
+   http://127.0.0.1:8000
+
+6) The app auto-starts its native background agent when ATS_AUTOSTART=true.
+
+7) Manual background-only mode
+   python background.py
+
+8) Strict walk-forward research on real NIFTY history
+   python -m src.ats.research --years 5y --min-train 252 --cases 300
+
+9) Optional PQRNN smoke training
+   python train_pqrnn.py --epochs 30
+
+No broker order execution is enabled.
+
+--- Automatic PQRNN lifecycle ---
+Normal background operation triggers it automatically during off-market sync when evidence thresholds are met.
+Manual status: GET /api/pqrnn
+Manual evaluation/training: POST /api/pqrnn/train
+Torch is optional; without requirements-ml installed the lifecycle reports disabled and ATS continues with the core experts/DMA.
+
+10) PQRNN lifecycle is automatic. Do not run training manually during market hours. A promoted champion is automatically included as the fifth daily expert.
+11) Dashboard Policy Weights shows INITIAL PRIOR until settled outcomes exist, then LEARNED FROM SETTLED OUTCOMES.

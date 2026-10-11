@@ -1,0 +1,45 @@
+{
+  "generated_at": "2026-09-01T18:39:21.619933+00:00",
+  "n": 300,
+  "history_years": "5y",
+  "min_train": 252,
+  "cases": 300,
+  "models": {
+    "persistence": {
+      "directional_accuracy": 0.5033333333333333,
+      "brier": 0.25,
+      "log_loss": 0.6931471805599453,
+      "mean_absolute_error": 0.005795808144796268
+    },
+    "logistic": {
+      "directional_accuracy": 0.5633333333333334,
+      "brier": 0.24773679589376205,
+      "log_loss": 0.6917066778065397,
+      "mean_absolute_error": 0.005795808144796268
+    },
+    "lightgbm_compatible": {
+      "directional_accuracy": 0.56,
+      "brier": 0.24765320375187733,
+      "log_loss": 0.6915379323494694,
+      "mean_absolute_error": 0.005743152891998983
+    },
+    "arima_gjr_garch": {
+      "directional_accuracy": 0.48333333333333334,
+      "brier": 0.5166656333343334,
+      "log_loss": 7.138014271602272,
+      "mean_absolute_error": 0.005868580091456445
+    },
+    "dma": {
+      "directional_accuracy": 0.54,
+      "brier": 0.2530762594649108,
+      "log_loss": 0.70018206330444,
+      "mean_absolute_error": 0.00574924760375072
+    }
+  },
+  "dma_final_weights": {
+    "persistence": 0.2780615374331311,
+    "logistic": 0.2775954747939356,
+    "lightgbm_compatible": 0.265217993923521,
+    "arima_gjr_garch": 0.17912499384941225
+  }
+}

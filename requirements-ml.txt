@@ -1,0 +1,2 @@
+# Optional. Base daily forecasting and replay work without torch.
+torch>=2.3,<3

@@ -1,0 +1,20 @@
+[Unit]
+Description=ATS live-data paper evaluator
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/ats
+EnvironmentFile=/opt/ats/.env
+ExecStart=/opt/ats/.venv/bin/python /opt/ats/scripts/run_live_paper.py
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/ats/data /opt/ats/models
+
+[Install]
+WantedBy=multi-user.target

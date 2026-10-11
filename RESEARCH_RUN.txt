@@ -1,0 +1,9 @@
+Historical v2 research commands/results. See README.md and VALIDATION.md for v3 checks.
+
+STRICT NIFTY WALK-FORWARD
+
+Run from the ATS_v2_release folder:
+
+python -m src.ats.research --years 5y --min-train 252 --cases 300 --out research/walk_forward.json
+
+This is deliberately out-of-sample walk-forward evaluation. It is a research benchmark, not a claim of live accuracy.
