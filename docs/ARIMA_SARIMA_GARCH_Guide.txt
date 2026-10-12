@@ -1,0 +1,79 @@
+ARIMA, SARIMA AND GARCH
+
+The basic idea
+ARIMA predicts the expected next value or return. SARIMA does the same while also modelling a repeating seasonal pattern. GARCH predicts changing uncertainty, called volatility. In your project, ARIMA and GJR-GARCH work together; SARIMA is not currently implemented.
+
+1. ARIMA: learn from recent patterns and mistakes
+ARIMA stands for AutoRegressive Integrated Moving Average. It works on a time series: observations recorded in time order, such as daily closing prices or daily returns.
+
+What its three parts mean
+AR (AutoRegressive): use previous values to help predict the next value. I (Integrated): difference the series when needed to make its behaviour more stable. For example, change a rising price series into changes between consecutive prices. MA (Moving Average): use previous unexpected errors, or shocks, to improve the forecast. Here, moving average means past errors; it is not the ordinary moving average line on a trading chart.
+
+Understanding ARIMA(p, d, q)
+p is the number of previous values used by the AR part. d is the number of differencing operations. q is the number of previous errors used by the MA part. ARIMA(1,0,1), for example, uses one previous value and one previous error, without additional differencing.
+
+How ARIMA works step by step
+1. Collect observations in time order.
+2. Check whether the series needs differencing.
+3. Fit candidate combinations of p, d and q.
+4. Compare the candidates using a score such as AIC, which balances fit against model complexity.
+5. Check the remaining errors and validate forecasts on later observations.
+6. Forecast the next value or return.
+
+ARIMA in your ATS project
+The daily expert receives return observations rather than raw prices. It tries nine ARIMA(p,0,q) combinations, with p and q each ranging from 0 to 2. It selects the successfully fitted candidate with the lowest AIC. The middle value is zero because it applies no further differencing to those returns. It outputs an expected next-session return and the historical fitted errors, called residuals. AIC selects among these candidates; it does not prove that predictions will be accurate.
+
+A simple ARIMA example
+Suppose recent daily changes contain a small pattern. ARIMA might estimate the next return at +0.2%. That is an estimated average outcome, not a promise that the market will rise. If the fitted return for a past day was +0.2% and the actual return was -1.0%, the residual for that day is -1.2 percentage points.
+
+2. SARIMA: ARIMA plus a repeating pattern
+SARIMA stands for Seasonal AutoRegressive Integrated Moving Average. It adds patterns that repeat after a fixed number of observations. Seasonal does not necessarily mean summer or winter. Monthly sales repeating each year are a typical example: the seasonal period is 12 monthly observations.
+
+Understanding SARIMA(p,d,q)(P,D,Q,s)
+The lowercase p, d and q have the same meanings as in ARIMA. Uppercase P, D and Q describe seasonal versions of those components. s is the repeating period. With monthly data and s=12, seasonal terms look back in multiples of 12 months. Seasonal differencing with D=1 subtracts the value from one seasonal period earlier.
+
+How SARIMA works step by step
+1. Collect regularly spaced observations.
+2. Investigate whether a repeating pattern actually exists.
+3. Choose the seasonal period based on the data and its real-world meaning.
+4. Fit ordinary and seasonal components.
+5. Check errors and compare forecasts on later data against simpler models.
+6. Forecast while accounting for the repeating pattern.
+
+A simple SARIMA example
+An ice-cream shop may sell more every summer. ARIMA can model recent changes, while SARIMA can also use the repeating yearly pattern. For market data, a five-observation period might be investigated as a trading-week pattern, but holidays and changing market behaviour complicate this. It must be tested rather than assumed. Your ATS code currently does not use SARIMA, so do not describe it as an implemented project technique.
+
+3. GARCH: predict how much uncertainty changes
+GARCH stands for Generalized AutoRegressive Conditional Heteroskedasticity. In plain terms, it models uncertainty that changes over time. Financial markets often show volatility clustering: large movements tend to occur near other large movements, and calm periods tend to occur near other calm periods. GARCH estimates the next period’s conditional variance; its square root is volatility.
+
+How ordinary GARCH(1,1) works
+It combines three ingredients: a base level of variance, the size of the latest unexpected error squared, and the previous variance estimate. One recent shock and one previous variance term give the common (1,1) form. A large shock can increase predicted uncertainty even if it was a positive move. GARCH itself does not decide whether the next return will be positive or negative.
+
+GJR-GARCH in your project
+Your project uses GJR-GARCH(1,1), an asymmetric extension. Its calculation adds an extra term when the previous residual is negative. This allows an unexpectedly negative return to raise forecast uncertainty more than an equally sized positive surprise. The negative shock is defined relative to the ARIMA prediction, not simply by whether the price fell.
+
+How your GARCH parameters are learned
+The code fits parameters using maximum likelihood: it searches for settings under which the observed errors are most plausible. It uses constrained numerical optimisation, with a second starting point if the first fit fails. Parameter bounds and a persistence constraint limit the allowed solutions. These numerical safeguards are not evidence that the market forecast is correct.
+
+Why the project uses a skewed Student’s t distribution
+This distribution allows heavier tails than a normal bell curve, meaning unusually large moves can be more plausible. It also allows the upside and downside shapes to differ. The code learns tail and skew parameters from the residuals. This is a modelling assumption, not a guarantee that every extreme event is captured.
+
+4. The complete flow in your project
+Past daily returns -> ARIMA -> expected next-session return and residuals -> GJR-GARCH fitted to residuals -> next-session volatility -> skewed-t forecast distribution -> upward probability and return percentiles -> blend with the other experts -> dashboard and decision gates.
+
+What the outputs mean
+Expected return: the estimated centre in the mean sense. Volatility: the estimated scale of uncertainty. Probability up: the probability that the next return exceeds zero under the fitted distribution. Percentiles: points in the predicted return distribution. The 5th-to-95th-percentile range is a model-estimated 90% prediction interval. It is not guaranteed to contain 90% of real outcomes unless calibration is demonstrated.
+
+One example of their combined output
+Illustrative numbers only: ARIMA predicts +0.2%, while GARCH predicts volatility of 1.0%. This says the estimated average movement is slightly positive but uncertainty is much larger. It does not say that the market will rise exactly 0.2%, or that its movement cannot exceed 1.0%. With skewness, the upward probability is not determined by the mean alone.
+
+5. Comparing the three methods
+ARIMA: models the expected value or return using recent values and errors. Useful when non-seasonal time patterns exist. Implemented in ATS.
+SARIMA: models the expected value or return with an additional repeating seasonal pattern. Useful when a stable seasonal structure is supported by data. Not implemented in ATS.
+GARCH: models changing variance and volatility. Useful when uncertainty clusters over time. Implemented as GJR-GARCH in ATS.
+
+6. Important details for your project explanation
+The code runs an ARCH-LM diagnostic on ARIMA residuals to check for evidence of changing variance. However, the current expert fits GJR-GARCH regardless of that diagnostic’s result. The ARIMA-GARCH forecast is one expert in the ensemble; the final dashboard forecast also includes other experts and their weights. Software tests establish behaviour, while forecast quality must be evaluated separately on later data using chronological validation and settled outcomes.
+
+A short answer for your presentation
+We use ARIMA to estimate the next daily return from historical returns and prediction errors. We then fit GJR-GARCH to those errors to estimate changing volatility, including the extra effect of negative shocks. A skewed-t distribution provides probabilities and prediction ranges. This expert is combined with the other forecasting models. SARIMA is a seasonal extension of ARIMA that we can explain or investigate, but it is not part of the current implementation.
